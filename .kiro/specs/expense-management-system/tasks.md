@@ -8,7 +8,7 @@
   - Add input validation schemas using Zod and write unit tests
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 1.2 Build organization UI and clean up placeholder code
+- [x] 1.2 Build organization UI and clean up placeholder code
   - Build organization creation form and organization list UI components
   - Remove placeholder Post model, router, and related UI components
   - Update tRPC root router to remove postRouter and add organizationRouter

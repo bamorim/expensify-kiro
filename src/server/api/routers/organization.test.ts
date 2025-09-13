@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { organizationRouter, createOrganizationSchema } from "./organization";
-import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 import { faker } from "@faker-js/faker";
-import { TRPCError } from "@trpc/server";
 
 // Mock the database to use the transactional testing wrapper
 vi.mock("~/server/db");
@@ -12,8 +10,6 @@ vi.mock("~/server/db");
 vi.mock("~/server/auth", () => ({
   auth: vi.fn(),
 }));
-
-const mockAuth = vi.mocked(auth);
 
 describe("OrganizationRouter", () => {
   beforeEach(() => {
