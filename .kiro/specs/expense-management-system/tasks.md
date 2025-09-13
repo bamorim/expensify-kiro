@@ -1,11 +1,18 @@
 # Implementation Plan
 
 - [ ] 1. Set up basic organization schema, router, and UI
+- [ ] 1.1 Create organization data models and router
   - Add Organization and OrganizationMember models to Prisma schema
   - Add OrganizationRole enum to support admin/member roles
   - Create organizationRouter with create, listByUser procedures
   - Add input validation schemas using Zod and write unit tests
+  - _Requirements: 1.1, 1.2, 1.3_
+
+- [ ] 1.2 Build organization UI and clean up placeholder code
   - Build organization creation form and organization list UI components
+  - Remove placeholder Post model, router, and related UI components
+  - Update tRPC root router to remove postRouter and add organizationRouter
+  - Clean up any Post-related test files and components
   - _Requirements: 1.1, 1.2, 1.3_
 
 - [ ] 2. Implement organization context switching with UI
