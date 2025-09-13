@@ -59,3 +59,7 @@ pnpm test:reset       # Reset test database
 - **TypeScript strict mode** - Full type safety enforcement
 - **Tailwind classes** - Utility-first CSS approach
 - **Server/Client separation** - Clear boundaries with `server-only`
+
+## Global Acceptance Criteria
+
+- Before any tasks are deemed as completed we need to ensure that tests are passing (`pnpm test`), linter is passing (`pnpm lint`) and types are correct (`pnpm typecheck`)
