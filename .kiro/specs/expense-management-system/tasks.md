@@ -1,7 +1,7 @@
 # Implementation Plan
 
 - [ ] 1. Set up basic organization schema, router, and UI
-- [ ] 1.1 Create organization data models and router
+- [x] 1.1 Create organization data models and router
   - Add Organization and OrganizationMember models to Prisma schema
   - Add OrganizationRole enum to support admin/member roles
   - Create organizationRouter with create, listByUser procedures
