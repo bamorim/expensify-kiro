@@ -15,26 +15,29 @@
   - Clean up any Post-related test files and components
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 2. Implement organization context switching with UI
-  - Add activeOrganizationId field to User model and run migration
-  - Add switchContext procedure to update user's active organization
-  - Update NextAuth session callback to include organization context
-  - Create middleware to validate organization access and write tests
-  - Build organization switcher UI component and integrate into layout
-  - _Requirements: 1.4, 1.5_
+- [ ] 2. Implement request-based organization scoping with URL routing
+  - Create organizationInputSchema and organizationProcedure middleware for tRPC
+  - Update organization router to use organizationProcedure for scoped operations
+  - Implement URL-based organization routing with Next.js dynamic routes
+  - Create organization context validation that checks membership per request
+  - Build organization navigation UI that works with URL-based routing
+  - Write tests for organization scoping and multi-tab functionality
+  - _Requirements: 1.5, 1.6, 1.7_
 
 - [ ] 3. Implement organization member management with UI
-  - Add listMembers and removeMember procedures to organization router
-  - Create admin-only middleware for member management operations
-  - Write tests for member listing and removal functionality
-  - Build member management UI with list view and remove actions for admins
+  - Add listMembers and removeMember procedures using organizationProcedure
+  - Create adminProcedure middleware that extends organizationProcedure for admin-only operations
+  - Update procedures to use organizationInputSchema with proper Zod validation
+  - Write tests for member listing and removal with organization scoping
+  - Build member management UI that works with URL-based organization context
   - _Requirements: 2.2, 2.3_
 
 - [ ] 4. Create invitation management system with UI
 - [ ] 4.1 Add invitation schema, router, and user invitation UI
   - Add OrganizationInvitation model to Prisma schema and run migration
-  - Create invitationRouter with create, listForUser, listByOrganization procedures
-  - Add input validation for invitation creation and write unit tests
+  - Create invitationRouter with create, listForUser, listByOrganization procedures using organizationProcedure
+  - Add input validation using organizationInputSchema extended with invitation fields
+  - Write unit tests for invitation operations with proper organization scoping
   - Build user invitation dashboard showing pending invitations with accept/decline actions
   - _Requirements: 8.1, 8.2, 8.3_
 
@@ -48,16 +51,17 @@
 - [ ] 5. Create expense category and policy system with UI
 - [ ] 5.1 Add category schema, router, and management UI
   - Add ExpenseCategory and CategoryPolicy models to Prisma schema and run migration
-  - Create categoryRouter with listByOrganization, create procedures
-  - Add input validation for category creation and write unit tests
-  - Build category management UI with creation form and listing for admins
+  - Create categoryRouter using organizationProcedure and adminProcedure for scoped operations
+  - Add input validation using organizationInputSchema extended with category fields
+  - Write unit tests for category operations with organization scoping validation
+  - Build category management UI that works with URL-based organization context
   - _Requirements: 4.1, 4.2_
 
 - [ ] 5.2 Implement policy management with configuration UI
-  - Add updatePolicies procedure for category policy configuration
-  - Create validation for policy rules (amounts, approval thresholds)
-  - Write tests for policy creation and updates
-  - Build policy configuration UI with form controls for rules and thresholds
+  - Add updatePolicies procedure using adminProcedure with organizationInputSchema
+  - Create validation for policy rules using Zod schemas for amounts and thresholds
+  - Write tests for policy creation and updates with organization scoping
+  - Build policy configuration UI that works with URL-based organization routing
   - _Requirements: 4.2, 4.3_
 
 - [ ] 5.3 Create policy evaluation engine
@@ -69,9 +73,10 @@
 - [ ] 6. Implement expense management system with UI
 - [ ] 6.1 Add expense schema, router, and submission UI
   - Add Expense model and ExpenseStatus enum to Prisma schema and run migration
-  - Create expenseRouter with create, listByUser procedures
-  - Add input validation schemas for expense creation and write unit tests
-  - Build expense submission form with category selection and amount input
+  - Create expenseRouter using organizationProcedure for all expense operations
+  - Add input validation using organizationInputSchema extended with expense fields
+  - Write unit tests for expense operations with organization scoping validation
+  - Build expense submission form that works with URL-based organization context
   - _Requirements: 5.1, 5.2_
 
 - [ ] 6.2 Implement expense submission with policy processing and status UI
@@ -82,32 +87,32 @@
   - _Requirements: 5.3, 6.1, 6.2, 6.3_
 
 - [ ] 6.3 Implement file upload for receipts with UI
-  - Add uploadReceipt procedure with file handling
-  - Create secure file storage system with proper naming
-  - Write tests for receipt upload and association with expenses
-  - Build receipt upload component and display in expense forms and details
+  - Add uploadReceipt procedure using organizationProcedure with file handling
+  - Create secure file storage system with organization-scoped file naming
+  - Write tests for receipt upload with organization validation and expense association
+  - Build receipt upload component that works with URL-based organization context
   - _Requirements: 5.2_
 
 - [ ] 6.4 Create expense review and approval system with admin UI
-  - Add listForReview procedure for admin expense queue
-  - Implement approve and reject procedures with reason tracking
-  - Write tests for expense approval workflow
-  - Build admin review queue UI with approve/reject actions and filtering
+  - Add listForReview, approve, and reject procedures using adminProcedure
+  - Implement approval workflow with organizationInputSchema validation
+  - Write tests for expense approval workflow with organization scoping
+  - Build admin review queue UI that works with URL-based organization routing
   - _Requirements: 7.1, 7.2, 7.3_
 
 - [ ] 7. Implement reporting and analytics with dashboard UI
 - [ ] 7.1 Create reporting tRPC router and analytics dashboard
-  - Add procedures for expense summaries by category, user, and time period
-  - Implement policy compliance metrics calculation
-  - Write unit tests for reporting data aggregation
-  - Build analytics dashboard with expense trends and policy effectiveness metrics
+  - Add reporting procedures using organizationProcedure for organization-scoped data
+  - Implement policy compliance metrics calculation with organization filtering
+  - Write unit tests for reporting data aggregation with organization scoping
+  - Build analytics dashboard that works with URL-based organization context
   - _Requirements: 10.1, 10.2, 10.3_
 
 - [ ] 7.2 Add export functionality and advanced reporting UI
-  - Add export procedures for reports in CSV and PDF formats
-  - Create advanced filtering and date range selection
-  - Write tests for export functionality
-  - Build report export UI with format selection and download capabilities
+  - Add export procedures using organizationProcedure for organization-scoped exports
+  - Create advanced filtering with organizationInputSchema validation
+  - Write tests for export functionality with organization scoping
+  - Build report export UI that works with URL-based organization routing
   - _Requirements: 10.4_
 
 - [ ] 8. Add notification and status tracking with UI
@@ -134,9 +139,10 @@
   - _Requirements: 1.1, 1.4_
 
 - [ ] 9.2 Create role-based access control middleware
-  - Implement adminProcedure middleware for tRPC
-  - Add organization membership validation
-  - Write comprehensive tests for access control
+  - Implement organizationProcedure and adminProcedure middleware for tRPC
+  - Add per-request organization membership validation using Zod schemas
+  - Write comprehensive tests for access control with organization scoping
+  - Test multi-tab functionality to ensure proper organization isolation
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
 - [ ] 10. Add comprehensive testing and error handling with UI polish
@@ -155,8 +161,9 @@
   - _Requirements: All requirements_
 
 - [ ] 11. Final integration and polish
-  - Validate multi-organization functionality and data isolation
-  - Ensure proper security and access control throughout the application
+  - Validate multi-organization functionality with URL-based routing and data isolation
+  - Test multi-tab functionality to ensure users can view different organizations simultaneously
+  - Ensure proper security and access control with request-based organization validation
   - Add final UI polish, responsive design, and accessibility improvements
-  - Conduct end-to-end testing of all user workflows
+  - Conduct end-to-end testing of all user workflows including multi-tab scenarios
   - _Requirements: All requirements_

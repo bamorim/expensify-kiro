@@ -48,6 +48,16 @@ graph TB
 - **Testing**: Vitest with transactional testing
 - **Validation**: Zod schemas for input validation
 
+### Organization Context Management
+
+The system uses **request-based organization scoping** rather than session-based scoping to support multiple browser tabs viewing different organizations simultaneously:
+
+- **URL-based routing**: Organization context is determined from URL parameters (`/org/[orgId]/expenses`)
+- **Input-based scoping**: All tRPC procedures require `organizationId` in their input schemas
+- **Per-request validation**: Organization membership is verified on each request rather than stored in session
+- **Multi-tab support**: Users can have multiple tabs open to different organizations without conflicts
+- **Stateless design**: No organization state is stored in user sessions or browser storage
+
 ## Components and Interfaces
 
 ### Core Domain Models
@@ -143,17 +153,18 @@ export const organizationRouter = createTRPCRouter({
   listByUser: protectedProcedure
     .query(async ({ ctx }) => { /* Get user's organizations */ }),
   
-  switchContext: protectedProcedure
-    .input(z.object({ organizationId: z.string() }))
-    .mutation(async ({ ctx, input }) => { /* Switch active org */ }),
+  // organizationProcedure already includes organizationId validation
+  getById: organizationProcedure
+    .query(async ({ ctx, input }) => { /* Get organization details */ }),
   
-  // Member management
-  listMembers: protectedProcedure
-    .input(z.object({ organizationId: z.string() }))
+  // Member management - extend base schema for additional fields
+  listMembers: organizationProcedure
     .query(async ({ ctx, input }) => { /* Get org members */ }),
   
   removeMember: adminProcedure
-    .input(z.object({ organizationId: z.string(), userId: z.string() }))
+    .input(organizationInputSchema.extend({ 
+      userId: z.string().cuid() 
+    }))
     .mutation(async ({ ctx, input }) => { /* Remove member from org */ }),
 });
 ```
@@ -198,30 +209,46 @@ export const invitationRouter = createTRPCRouter({
 #### Expense Router
 ```typescript
 export const expenseRouter = createTRPCRouter({
-  // Expense CRUD
-  create: protectedProcedure
-    .input(createExpenseSchema)
+  // Expense CRUD - extend organization schema with expense fields
+  create: organizationProcedure
+    .input(organizationInputSchema.extend({
+      amount: z.number().positive().max(100000),
+      description: z.string().min(1).max(500),
+      date: z.date().max(new Date()),
+      categoryId: z.string().cuid(),
+    }))
     .mutation(async ({ ctx, input }) => { /* Create and process expense */ }),
   
-  listByUser: protectedProcedure
-    .input(paginationSchema)
-    .query(async ({ ctx, input }) => { /* Get user's expenses */ }),
+  listByUser: organizationProcedure
+    .input(organizationInputSchema.extend({
+      page: z.number().min(1).default(1),
+      limit: z.number().min(1).max(100).default(20),
+    }))
+    .query(async ({ ctx, input }) => { /* Get user's expenses for this org */ }),
   
   listForReview: adminProcedure
-    .input(z.object({ organizationId: z.string() }))
     .query(async ({ ctx, input }) => { /* Get expenses needing review */ }),
   
   approve: adminProcedure
-    .input(approveExpenseSchema)
+    .input(organizationInputSchema.extend({
+      expenseId: z.string().cuid(),
+      notes: z.string().optional(),
+    }))
     .mutation(async ({ ctx, input }) => { /* Approve expense */ }),
   
   reject: adminProcedure
-    .input(rejectExpenseSchema)
+    .input(organizationInputSchema.extend({
+      expenseId: z.string().cuid(),
+      reason: z.string().min(1),
+    }))
     .mutation(async ({ ctx, input }) => { /* Reject expense */ }),
   
   // File upload
-  uploadReceipt: protectedProcedure
-    .input(uploadReceiptSchema)
+  uploadReceipt: organizationProcedure
+    .input(organizationInputSchema.extend({
+      expenseId: z.string().cuid(),
+      file: z.instanceof(File),
+    }))
     .mutation(async ({ ctx, input }) => { /* Handle file upload */ }),
 });
 ```
@@ -229,16 +256,29 @@ export const expenseRouter = createTRPCRouter({
 #### Category and Policy Router
 ```typescript
 export const categoryRouter = createTRPCRouter({
-  listByOrganization: protectedProcedure
-    .input(z.object({ organizationId: z.string() }))
+  listByOrganization: organizationProcedure
     .query(async ({ ctx, input }) => { /* Get categories */ }),
   
   create: adminProcedure
-    .input(createCategorySchema)
+    .input(organizationInputSchema.extend({
+      name: z.string().min(1).max(100),
+      description: z.string().optional(),
+      maxAmount: z.number().positive().optional(),
+      requiresApproval: z.boolean().default(false),
+      autoApprove: z.boolean().default(false),
+    }))
     .mutation(async ({ ctx, input }) => { /* Create category */ }),
   
   updatePolicies: adminProcedure
-    .input(updatePoliciesSchema)
+    .input(organizationInputSchema.extend({
+      categoryId: z.string().cuid(),
+      policies: z.array(z.object({
+        maxAmount: z.number().positive().optional(),
+        requiresApproval: z.boolean(),
+        autoApprove: z.boolean(),
+        approvalThreshold: z.number().positive().optional(),
+      })),
+    }))
     .mutation(async ({ ctx, input }) => { /* Update category policies */ }),
 });
 ```
@@ -260,23 +300,45 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
 
 #### Custom Procedures
 ```typescript
-// Admin procedure - requires admin role in current organization
-const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  const organizationId = ctx.session.user.activeOrganizationId;
-  
-  const membership = await ctx.db.organizationMember.findFirst({
-    where: {
-      userId: ctx.session.user.id,
-      organizationId,
-      role: 'ADMIN',
-    },
+// Base organization input schema
+const organizationInputSchema = z.object({
+  organizationId: z.string().cuid(),
+});
+
+// Organization-scoped procedure - validates organization access
+const organizationProcedure = protectedProcedure
+  .input(organizationInputSchema)
+  .use(async ({ ctx, next, input }) => {
+    const { organizationId } = input;
+    
+    // Verify user has access to this organization
+    const membership = await ctx.db.organizationMember.findFirst({
+      where: {
+        userId: ctx.session.user.id,
+        organizationId,
+      },
+    });
+    
+    if (!membership) {
+      throw new TRPCError({ code: 'FORBIDDEN' });
+    }
+    
+    return next({ 
+      ctx: { 
+        ...ctx, 
+        organizationId, 
+        userRole: membership.role 
+      } 
+    });
   });
-  
-  if (!membership) {
+
+// Admin procedure - requires admin role in specified organization
+const adminProcedure = organizationProcedure.use(async ({ ctx, next }) => {
+  if (ctx.userRole !== 'ADMIN') {
     throw new TRPCError({ code: 'FORBIDDEN' });
   }
   
-  return next({ ctx: { ...ctx, organizationId } });
+  return next({ ctx });
 });
 ```
 
@@ -291,7 +353,6 @@ model User {
   name                  String?
   emailVerified         DateTime?
   image                 String?
-  activeOrganizationId  String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   
@@ -575,22 +636,23 @@ describe('Expense Router', () => {
     
     // Mock auth to return test user session
     vi.mocked(auth).mockResolvedValue({
-      user: { id: user.id, activeOrganizationId: org.id }
+      user: { id: user.id }
     });
     
     // Create tRPC caller
     const caller = createCaller({
       db,
-      session: { user: { id: user.id, activeOrganizationId: org.id } },
+      session: { user: { id: user.id } },
       headers: new Headers(),
     });
     
-    // Test expense creation
+    // Test expense creation with organization ID in input
     const expense = await caller.expense.create({
       amount: 50.00,
       description: 'Test expense',
       date: new Date(),
       categoryId: category.id,
+      organizationId: org.id,
     });
     
     expect(expense.status).toBe('APPROVED'); // Auto-approved by policy
@@ -634,7 +696,7 @@ describe('Expense Management', () => {
     
     // Mock auth for this test
     vi.mocked(auth).mockResolvedValue({
-      user: { id: user.id, activeOrganizationId: org.id }
+      user: { id: user.id }
     });
     
     // Run test logic...

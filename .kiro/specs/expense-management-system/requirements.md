@@ -16,8 +16,10 @@ The Expensify expense management system is a smart, policy-driven platform that 
 2. WHEN a registered user creates an organization THEN the system SHALL generate a unique organization identifier and assign them Admin role
 3. WHEN users access the system THEN the system SHALL isolate all data (expenses, categories, policies) by organization
 4. WHEN a user first logs in without organizations THEN the system SHALL prompt them to create an organization or check for pending invitations
-5. IF a user belongs to multiple organizations THEN the system SHALL allow switching between organization contexts
-6. WHEN an organization is deleted THEN the system SHALL remove all associated data while preserving audit trails
+5. IF a user belongs to multiple organizations THEN the system SHALL allow switching between organization contexts within each browser tab independently
+6. WHEN a user opens multiple browser tabs THEN the system SHALL allow viewing different organizations simultaneously without session conflicts
+7. WHEN organization context is determined THEN the system SHALL use URL-based or request-based organization identification rather than session-stored organization state
+8. WHEN an organization is deleted THEN the system SHALL remove all associated data while preserving audit trails
 
 ### Requirement 2: Role-Based Access Control
 
