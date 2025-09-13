@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { api } from "~/trpc/react";
 
 export function OrganizationList() {
@@ -43,13 +44,16 @@ export function OrganizationList() {
       
       <div className="space-y-3">
         {organizations.map((org) => (
-          <div
+          <Link
             key={org.id}
-            className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
+            href={`/org/${org.id}`}
+            className="block rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h3 className="text-lg font-medium text-gray-900">{org.name}</h3>
+                <h3 className="text-lg font-medium text-gray-900 hover:text-blue-600 transition-colors">
+                  {org.name}
+                </h3>
                 {org.description && (
                   <p className="text-gray-600 mt-1">{org.description}</p>
                 )}
@@ -64,8 +68,13 @@ export function OrganizationList() {
                   <span>Created {new Date(org.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
+              <div className="flex items-center text-gray-400">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

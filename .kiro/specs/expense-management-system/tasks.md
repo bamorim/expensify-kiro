@@ -15,7 +15,7 @@
   - Clean up any Post-related test files and components
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 2. Implement request-based organization scoping with URL routing
+- [x] 2. Implement request-based organization scoping with URL routing
   - Create organizationInputSchema and organizationProcedure middleware for tRPC
   - Update organization router to use organizationProcedure for scoped operations
   - Implement URL-based organization routing with Next.js dynamic routes

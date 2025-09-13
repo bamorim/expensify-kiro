@@ -10,6 +10,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import { z } from "zod";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
@@ -131,3 +132,62 @@ export const protectedProcedure = t.procedure
       },
     });
   });
+
+/**
+ * Organization input schema for request-based organization scoping
+ */
+export const organizationInputSchema = z.object({
+  organizationId: z.string().cuid(),
+});
+
+/**
+ * Organization-scoped procedure
+ *
+ * This procedure validates that the user has access to the specified organization
+ * and adds organization context to the procedure. This enables request-based
+ * organization scoping rather than session-based scoping.
+ */
+export const organizationProcedure = protectedProcedure
+  .input(organizationInputSchema)
+  .use(async ({ ctx, next, input }) => {
+    const { organizationId } = input;
+    
+    // Verify user has access to this organization
+    const membership = await ctx.db.organizationMember.findFirst({
+      where: {
+        userId: ctx.session.user.id,
+        organizationId,
+      },
+    });
+    
+    if (!membership) {
+      throw new TRPCError({ 
+        code: "FORBIDDEN",
+        message: "You do not have access to this organization"
+      });
+    }
+    
+    return next({ 
+      ctx: { 
+        ...ctx, 
+        organizationId, 
+        userRole: membership.role 
+      } 
+    });
+  });
+
+/**
+ * Admin procedure
+ *
+ * Extends organizationProcedure to require admin role in the specified organization
+ */
+export const adminProcedure = organizationProcedure.use(async ({ ctx, next }) => {
+  if (ctx.userRole !== "ADMIN") {
+    throw new TRPCError({ 
+      code: "FORBIDDEN",
+      message: "Admin access required for this operation"
+    });
+  }
+  
+  return next({ ctx });
+});

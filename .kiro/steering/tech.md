@@ -59,6 +59,7 @@ pnpm test:reset       # Reset test database
 - **TypeScript strict mode** - Full type safety enforcement
 - **Tailwind classes** - Utility-first CSS approach
 - **Server/Client separation** - Clear boundaries with `server-only`
+- Anytime ESLint complains about `react/no-unescaped-entities` like when we have `'`, just replace the string with a simple interpolation, so `<p>Can't do this</p>` becomes `<p>{"Can't do this"}</p>`.
 
 ## Global Acceptance Criteria
 
