@@ -24,7 +24,7 @@
   - Write tests for organization scoping and multi-tab functionality
   - _Requirements: 1.5, 1.6, 1.7_
 
-- [ ] 3. Implement organization member management with UI
+- [x] 3. Implement organization member management with UI
   - Add listMembers and removeMember procedures using organizationProcedure
   - Create adminProcedure middleware that extends organizationProcedure for admin-only operations
   - Update procedures to use organizationInputSchema with proper Zod validation

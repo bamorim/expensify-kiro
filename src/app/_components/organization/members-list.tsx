@@ -1,19 +1,43 @@
 "use client";
 
 import { api } from "~/trpc/react";
+import { useState } from "react";
 
 interface MembersListProps {
   organizationId: string;
 }
 
 export function MembersList({ organizationId }: MembersListProps) {
-  const { data: members, isLoading } = api.organization.listMembers.useQuery({
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+
+  const { data: members, isLoading, refetch } = api.organization.listMembers.useQuery({
     organizationId,
   });
 
   const { data: organization } = api.organization.getById.useQuery({
     organizationId,
   });
+
+  const removeMemberMutation = api.organization.removeMember.useMutation({
+    onSuccess: () => {
+      void refetch();
+      setRemovingMemberId(null);
+    },
+    onError: (error) => {
+      console.error("Failed to remove member:", error);
+      setRemovingMemberId(null);
+    },
+  });
+
+  const handleRemoveMember = async (userId: string) => {
+    if (confirm("Are you sure you want to remove this member from the organization?")) {
+      setRemovingMemberId(userId);
+      removeMemberMutation.mutate({
+        organizationId,
+        userId,
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -52,7 +76,7 @@ export function MembersList({ organizationId }: MembersListProps) {
             Organization Members ({members.length})
           </h3>
         </div>
-        
+
         <div className="divide-y divide-gray-200">
           {members.map((member) => (
             <div key={member.id} className="px-6 py-4 flex items-center justify-between">
@@ -69,23 +93,26 @@ export function MembersList({ organizationId }: MembersListProps) {
                   <div className="text-sm text-gray-500">{member.user.email}</div>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-4">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  member.role === 'ADMIN' 
-                    ? 'bg-blue-100 text-blue-800' 
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${member.role === 'ADMIN'
+                    ? 'bg-blue-100 text-blue-800'
                     : 'bg-green-100 text-green-800'
-                }`}>
+                  }`}>
                   {member.role}
                 </span>
-                
+
                 <div className="text-sm text-gray-500">
                   Joined {new Date(member.joinedAt).toLocaleDateString()}
                 </div>
-                
+
                 {organization?.userRole === 'ADMIN' && member.role !== 'ADMIN' && (
-                  <button className="text-red-600 hover:text-red-800 text-sm">
-                    Remove
+                  <button
+                    onClick={() => handleRemoveMember(member.user.id)}
+                    disabled={removingMemberId === member.user.id}
+                    className="text-red-600 hover:text-red-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {removingMemberId === member.user.id ? 'Removing...' : 'Remove'}
                   </button>
                 )}
               </div>
